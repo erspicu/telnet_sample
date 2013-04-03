@@ -1,9 +1,8 @@
 // StdioTool.h
 #pragma once
-#include <stdio.h> 
 #include "Stdafx.h"
 #include <conio.h>
-#include <windows.h>
+//#include <windows.h>
 
 using namespace System;
 
@@ -16,25 +15,10 @@ namespace StdioTool
 	public ref class stdio
 	{
 	public:
-
-		//可以支援big5正確輸出列印,包括雙色屬性
-		void print_asii ( char c  )
-		{
-			printf("%c",c);
-		}
-
 		//可以支援big5中文分成兩個byte輸入
 		char get_char()
 		{
 			return _getch();
-		}
-
-		void text_effect_underline() //底線實作
-		{
-		}
-
-		void text_effect_blink() //閃爍
-		{
 		}
 	};
 }

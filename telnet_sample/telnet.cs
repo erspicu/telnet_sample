@@ -6,7 +6,9 @@ using System.Net.Sockets;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Threading;
-using StdioTool; // 有些功能需要靠c++ lib & win32api才能處理
+using System.IO;
+using System.Diagnostics;
+using StdioTool; // 有些功能暫時可能需要靠c++ lib & win32api才能處理
 
 namespace telnet_sample
 {
@@ -31,25 +33,27 @@ namespace telnet_sample
         public int server_port;
 
         public stdio std = new stdio(); //討厭的東西,先替帶著用,最終希望直接靠主程式全部解決
+        public Stream stdout = Console.OpenStandardOutput();
 
         public minimal_telnet(string ip, int port)
         {
             server_ip = ip;
             server_port = port;
             tcpSocket = new TcpClient(server_ip, server_port);
-            Console.WindowWidth = 90;
-            Console.WindowHeight = 0x1A;
+            Console.WindowWidth = 90; // 90;
+            Console.WindowHeight = 0x18; //0x1A;
             Console.Title = "Sample BBS - " + ip;
+
             if (!tcpSocket.Connected)
             {
                 Console.WriteLine("連接失敗!");
                 return;
             }
             //防閒置踢出
-            Thread ko = new Thread(avoid_kickout );
+            Thread ko = new Thread(avoid_kickout);
             ko.IsBackground = true;
             ko.Start();
-            //啟動寫入獨力執行緒
+            //啟動寫入獨立執行緒
             new Thread(readkey).Start();
         }
 
@@ -138,13 +142,12 @@ namespace telnet_sample
                     virtualkey = false;
                     continue;
                 }
-                else if (virtualkey == true && cmd != 0xe0)
+                else if (virtualkey == true && cmd != 0xe0) // 0xe0開頭的中文字碼 或是 可能沒處理到的特殊雙碼按鍵
                 {
                     virtualkey = false;
-                    MessageBox.Show("未處理到的virtualkey");
+                    tcpSocket.GetStream().Write(new byte[] { 0xe0, (byte)cmd }, 0, 2);
                     continue;
                 }
-
                 if (cmd != 0xe0 && virtualkey != true && tcpSocket.Connected == true)
                     tcpSocket.GetStream().WriteByte((byte)cmd);
             }
@@ -214,7 +217,7 @@ namespace telnet_sample
                                         {
                                             tcpSocket.GetStream().Write(new byte[] { 0xff, 0xfa, 0x1f, 0x00, 0x50, 0x00, 0x18, 0xff, 0xf0 }, 0, 9);
                                             Console.WindowWidth = 0x50;
-                                            Console.WindowHeight = 0x18+1;
+                                            Console.WindowHeight = 0x18;
                                         }
                                         Thread.Sleep(50);
                                     }
@@ -241,12 +244,13 @@ namespace telnet_sample
                 if (rcb.Count != 0)
                     print_asii(rcb);
                 rcb.Clear();
-
             } while (tcpSocket.Connected);
         }
 
 
-        //ref http://www2.gar.no/glinkj/help/cmds/ansa.htm
+        //參考 
+        //http://www2.gar.no/glinkj/help/cmds/ansa.htm
+        //http://www.ibiblio.org/pub/historic-linux/ftp-archives/tsx-11.mit.edu/Oct-07-1996/info/vt102.codes
         public void print_asii(List<byte> asii_seq)
         {
             bool cond_code = false;
@@ -265,15 +269,16 @@ namespace telnet_sample
                 {
                     if (c == 0x0a)
                     {
-                        int left_org = Console.CursorLeft;
+                        if (((Console.CursorTop - Console.WindowTop) + 1) > Console.WindowHeight-1)
+                            Console.WindowTop++;
                         Console.CursorTop++;
-                        Console.CursorLeft = left_org;
                     }
-                    if (c == 0x08)
+
+                    if (c == 0x08)                  
                         Console.CursorLeft--;
 
                     if (c != 0x08 && c != 0x0a)
-                        std.print_asii((sbyte)c);
+                        stdout.WriteByte(c);
                 }
 
                 if (cond_code == true && c != 0x1b)
@@ -310,7 +315,7 @@ namespace telnet_sample
                                     MessageBox.Show("色彩控制8未支援");
                                     break;
                                 case "30":
-                                    Console.ForegroundColor = ConsoleColor.DarkGray ;
+                                    Console.ForegroundColor = ConsoleColor.DarkGray;
                                     break;
                                 case "31":
                                     Console.ForegroundColor = ConsoleColor.Red;
@@ -331,7 +336,7 @@ namespace telnet_sample
                                     Console.ForegroundColor = ConsoleColor.Cyan; //Cyan;
                                     break;
                                 case "37":
-                                    Console.ForegroundColor = ConsoleColor.White ; //白色以淺灰代表
+                                    Console.ForegroundColor = ConsoleColor.White; //白色以淺灰代表
                                     break;
                                 //背景以暗色為主
                                 case "40":
@@ -353,7 +358,7 @@ namespace telnet_sample
                                     Console.BackgroundColor = ConsoleColor.DarkMagenta; // Magenta;
                                     break;
                                 case "46":
-                                    Console.BackgroundColor = ConsoleColor.Cyan ;  //Cyan;
+                                    Console.BackgroundColor = ConsoleColor.Cyan;  //Cyan;
                                     break;
                                 case "47":
                                     Console.BackgroundColor = ConsoleColor.Gray;
@@ -368,10 +373,13 @@ namespace telnet_sample
                     if (c == 'H' || c == 'f')
                     {
 
-                    string token = Encoding.Default.GetString(cond_token.ToArray());
+                        string token = Encoding.Default.GetString(cond_token.ToArray());
 
                         if (token == "[H" || token == "[;H" || token == "[f" || token == "[;f")
-                            Console.SetCursorPosition(0, 0);
+                        {
+                            Console.CursorLeft = Console.WindowLeft;
+                            Console.CursorTop = Console.WindowTop;
+                        }
                         else
                         {
                             try
@@ -383,7 +391,10 @@ namespace telnet_sample
                                     c_TopRight[1] = "1";
                                 if (int.Parse(c_TopRight[0]) - 1 < 0)
                                     c_TopRight[0] = "1";
-                                Console.SetCursorPosition(int.Parse(c_TopRight[1]) - 1, int.Parse(c_TopRight[0]) - 1);
+
+                                Console.CursorLeft = Console.WindowLeft + int.Parse(c_TopRight[1]) - 1;
+                                Console.CursorTop = Console.WindowTop + int.Parse(c_TopRight[0]) - 1;
+
                             }
                             catch (Exception e)
                             {
@@ -401,9 +412,12 @@ namespace telnet_sample
 
                         if (token == "[J" || token == "[0J")//Erasing Text From cursor to end of screen
                             MessageBox.Show("[J");
-                        
+
                         if (token == "[2J")
+                        {
                             Console.Clear();
+                            Debug.WriteLine("clear screen ,wt:" + Console.WindowTop.ToString());
+                        }
                         if (token == "[1J") // From beginning of screen to cursor
                         {
                             MessageBox.Show("[1J");
@@ -439,16 +453,21 @@ namespace telnet_sample
                     }
                     if (c == 'r') //發表編輯文章會用到的控制屬性
                     {
-                        MessageBox.Show("unfinish cond r");
+                        Debug.WriteLine("esc r");
                         cond_code = false;
                         has_c = false;
                         cond_token.Clear();
                     }
                     //if (c == 'E') MessageBox.Show("unfinish cond D");
                     //if (c == 'D') MessageBox.Show("unfinish cond D");  //似乎不太會出現
-                    if (c == 'M') //似乎不太會出現 
+                    if (c == 'M' && has_c == false) //似乎不太會出現 
                     {
-                        MessageBox.Show("unfinish cond M");
+                        if (Console.WindowTop - 1 > 0)
+                            Console.WindowTop--;
+
+                        if (Console.CursorTop - 1 > 0)
+                            Console.CursorTop--;
+
                         cond_code = false;
                         has_c = false;
                         cond_token.Clear();

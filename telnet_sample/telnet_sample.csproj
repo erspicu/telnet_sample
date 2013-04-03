@@ -36,9 +36,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="StdioTool">
-      <HintPath>..\..\StdioTool\Debug\StdioTool.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Windows.Forms" />
@@ -52,6 +49,12 @@
     <Compile Include="samplebbs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="telnet.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StdioTool\StdioTool\StdioTool.vcxproj">
+      <Project>{C3C0D02A-B521-40CA-8643-FB32886DADB7}</Project>
+      <Name>StdioTool</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
