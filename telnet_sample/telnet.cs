@@ -247,7 +247,6 @@ namespace telnet_sample
             } while (tcpSocket.Connected);
         }
 
-
         //參考 
         //http://www2.gar.no/glinkj/help/cmds/ansa.htm
         //http://www.ibiblio.org/pub/historic-linux/ftp-archives/tsx-11.mit.edu/Oct-07-1996/info/vt102.codes
@@ -269,15 +268,19 @@ namespace telnet_sample
                 {
                     if (c == 0x0a)
                     {
-                        if (((Console.CursorTop - Console.WindowTop) + 1) > Console.WindowHeight-1)
+                        Debug.WriteLine(Console.CursorTop + ":" + Console.WindowTop + ":" + Console.WindowHeight);
+                        if ((Console.CursorTop + 1 - Console.WindowTop) > Console.WindowHeight) //need check this line!!
                             Console.WindowTop++;
                         Console.CursorTop++;
                     }
 
+                    if (c == 0x0d)
+                        Console.CursorLeft = 0;
+                   
                     if (c == 0x08)                  
                         Console.CursorLeft--;
 
-                    if (c != 0x08 && c != 0x0a)
+                    if (c != 0x08 && c != 0x0a && c != 0x0d)
                         stdout.WriteByte(c);
                 }
 
@@ -432,8 +435,7 @@ namespace telnet_sample
                         if (token == "[K" || token == "[0K") //須要確認
                         {
                             int org = Console.CursorLeft;
-                            int ns = Console.WindowWidth - Console.CursorLeft;
-                            for (int ii = 0; ii < ns; ii++)
+                            for (int ii = Console.CursorLeft; ii < Console.WindowWidth -1 ; ii++)
                                 Console.Write(" ");
                             Console.CursorLeft = org;
                         }
@@ -453,15 +455,14 @@ namespace telnet_sample
                     }
                     if (c == 'r') //發表編輯文章會用到的控制屬性
                     {
-                        Debug.WriteLine("esc r");
+                        MessageBox.Show("unfinish cond r");
                         cond_code = false;
                         has_c = false;
                         cond_token.Clear();
                     }
-                    //if (c == 'E') MessageBox.Show("unfinish cond D");
-                    //if (c == 'D') MessageBox.Show("unfinish cond D");  //似乎不太會出現
                     if (c == 'M' && has_c == false) //似乎不太會出現 
                     {
+
                         if (Console.WindowTop - 1 > 0)
                             Console.WindowTop--;
 
@@ -472,13 +473,13 @@ namespace telnet_sample
                         has_c = false;
                         cond_token.Clear();
                     }
-                    if (c == '7' && has_c == false) //記錄光標位置,與色彩屬性 似乎不太會出現
-                        MessageBox.Show("unfinish cond C");
-                    if (c == '8' && has_c == false) //恢復光標位置,與色彩屬性 似乎不太會出現
-                        MessageBox.Show("unfinish cond C");
-                    if (c == 'A') MessageBox.Show("unfinish cond A");
-                    if (c == 'B') MessageBox.Show("unfinish cond B");
-                    if (c == 'C') MessageBox.Show("unfinish cond C");
+                    if (c == '7' && has_c == false) MessageBox.Show("unfinish cond 7");
+                    if (c == '8' && has_c == false) MessageBox.Show("unfinish cond 8");
+                    if (c == 'A' && has_c == false) MessageBox.Show("unfinish cond A");
+                    if (c == 'B' && has_c == false) MessageBox.Show("unfinish cond B");
+                    if (c == 'C' && has_c == false) MessageBox.Show("unfinish cond C");
+                    if (c == 'D' && has_c == false) MessageBox.Show("unfinish cond D");  //似乎不太會出現
+                    if (c == 'E' && has_c == false) MessageBox.Show("unfinish cond E");
                 }
             }
             if (cond_code == true)
