@@ -218,6 +218,7 @@ namespace telnet_sample
                             break;
                     }
                     revcice_byte_list.Add((byte)revice_byte);
+                    //Thread.Sleep(1);
                 } while (tcpSocket.Available > 0);
 
                 //-- 列印回傳
@@ -233,12 +234,20 @@ namespace telnet_sample
         //http://www.comptechdoc.org/os/linux/howlinuxworks/linux_hlvt100.html
         //http://www5c.biglobe.ne.jp/~ecb/assembler2/b_2.html
         //http://www.handshake.de/infobase/dfue/prgrmmer/t322.htm
+        public bool hilight = false;
+        public bool fbchange = false;
+
+        public ConsoleColor fcolorbackup = Console.ForegroundColor;
+        public ConsoleColor bcolorbackup = Console.BackgroundColor;
         public void print_asii(List<byte> asii_seq)
         {
             bool cond_code = false;
             List<byte> cond_token = new List<byte>();
             List<byte> byte_str = new List<byte>();
             bool has_SquareBracket = false;
+
+
+            // MessageBox.Show("s");
 
             foreach (byte c in asii_seq)
             {
@@ -268,12 +277,23 @@ namespace telnet_sample
                     if (c == 'm')
                     {
                         string token = Encoding.Default.GetString(cond_token.ToArray());
-
-                        if (token == "[;m" || token == "[m") Console.ResetColor();
+                        if (token == "[;m" || token == "[m")
+                        {
+                            hilight = false;
+                            fbchange = false;
+                            Console.ResetColor();
+                        }
 
                         List<string> asii_tokens = new List<string>();
                         token = token.Replace("[", "").Replace("m", "");
                         asii_tokens = token.Split(new char[] { ';' }).ToList();
+
+                        bool exist_clear_attr = false;
+                        if (asii_tokens.Contains("") && token != "")
+                            exist_clear_attr = true;
+
+                        bool exist_f_attr = false;
+                        bool exist_b_attr = false;
 
                         //色彩控制處理需要再修正
                         foreach (string asii_t in asii_tokens)
@@ -281,77 +301,119 @@ namespace telnet_sample
                             switch (asii_t)
                             {
                                 case "0":
+                                    hilight = false;
+                                    fbchange = false;
                                     Console.ResetColor();
-                                    break;
-                                case "8": //不顯示 unfinished 
-                                    MessageBox.Show("色彩控制8未支援");
                                     break;
                                 case "30":
                                     Console.ForegroundColor = ConsoleColor.Black; //DarkGray ; //DarkGray  ;
+                                    exist_f_attr = true;
                                     break;
                                 case "31":
                                     Console.ForegroundColor = ConsoleColor.DarkRed;
+                                    exist_f_attr = true;
                                     break;
                                 case "32":
                                     Console.ForegroundColor = ConsoleColor.DarkGreen; // DarkGreen;
+                                    exist_f_attr = true;
                                     break;
                                 case "33":
-                                    Console.ForegroundColor = ConsoleColor.Yellow; //Yellow;
+                                    Console.ForegroundColor = ConsoleColor.DarkYellow; //Yellow;
+                                    exist_f_attr = true;
                                     break;
                                 case "34":
-                                    Console.ForegroundColor = ConsoleColor.Blue; //DarkBlue; //Blue;
+                                    Console.ForegroundColor = ConsoleColor.DarkBlue; //DarkBlue; //Blue;
+                                    exist_f_attr = true;
                                     break;
                                 case "35":
                                     Console.ForegroundColor = ConsoleColor.DarkMagenta; //Magenta;
+                                    exist_f_attr = true;
                                     break;
                                 case "36":
-                                    Console.ForegroundColor = ConsoleColor.Cyan; //Cyan;
+                                    Console.ForegroundColor = ConsoleColor.DarkCyan; //Cyan;
+                                    exist_f_attr = true;
                                     break;
                                 case "37":
                                     Console.ForegroundColor = ConsoleColor.White; //白色以淺灰代表
+                                    exist_f_attr = true;
                                     break;
                                 //背景比前景暗一度
                                 case "40":
                                     Console.BackgroundColor = ConsoleColor.Black;
+                                    exist_b_attr = true;
                                     break;
                                 case "41":
                                     Console.BackgroundColor = ConsoleColor.DarkRed;//ok
+                                    exist_b_attr = true;
                                     break;
                                 case "42":
                                     Console.BackgroundColor = ConsoleColor.DarkGreen; //ok
+                                    exist_b_attr = true;
                                     break;
                                 case "43":
                                     Console.BackgroundColor = ConsoleColor.DarkYellow; //ok
+                                    exist_b_attr = true;
                                     break;
                                 case "44":
                                     Console.BackgroundColor = ConsoleColor.DarkBlue; //ok
+                                    exist_b_attr = true;
                                     break;
                                 case "45":
                                     Console.BackgroundColor = ConsoleColor.DarkMagenta; //ok
+                                    exist_b_attr = true;
                                     break;
                                 case "46":
                                     Console.BackgroundColor = ConsoleColor.DarkCyan;//Cyan;
+                                    exist_b_attr = true;
                                     break;
                                 case "47":
-                                    Console.BackgroundColor = ConsoleColor.White;
+                                    Console.BackgroundColor = ConsoleColor.Gray; //??
+                                    exist_b_attr = true;
                                     break;
                             }
                         }
 
-                        if (asii_tokens.Contains("1"))//前景加亮
+                        if (exist_b_attr && !exist_f_attr && exist_clear_attr)
                         {
-                            if (Console.ForegroundColor == ConsoleColor.Black)
-                                Console.ForegroundColor = ConsoleColor.DarkGray;
-                            if (Console.ForegroundColor == ConsoleColor.DarkGreen)
-                                Console.ForegroundColor = ConsoleColor.Green;
-                            if (Console.ForegroundColor == ConsoleColor.DarkRed)
-                                Console.ForegroundColor = ConsoleColor.Red;
-                            if (Console.ForegroundColor == ConsoleColor.DarkMagenta)
-                                Console.ForegroundColor = ConsoleColor.Magenta;
+                            fbchange = false;
+                            hilight = false;
+                            Console.ForegroundColor = ConsoleColor.Gray;
                         }
 
-                        if (asii_tokens.Contains("7")) //前後背景色彩交換
+                        else if (!exist_b_attr && exist_f_attr && exist_clear_attr)
                         {
+                            fbchange = false;
+                            hilight = false;
+                            Console.BackgroundColor = ConsoleColor.Black;
+                        }
+
+                        if (exist_b_attr && exist_f_attr && exist_clear_attr || asii_tokens.Contains("1")) fbchange = false;
+                        if (exist_b_attr && exist_f_attr && exist_clear_attr || asii_tokens.Contains("7")) hilight = false;
+
+                        if (asii_tokens.Contains("1") || hilight == true)//前景加亮
+                        {
+                            hilight = true;
+                            if (Console.ForegroundColor == ConsoleColor.Gray)
+                                Console.ForegroundColor = ConsoleColor.White;
+                            if (Console.ForegroundColor == ConsoleColor.Black)
+                                Console.ForegroundColor = ConsoleColor.DarkGray;
+                            else if (Console.ForegroundColor == ConsoleColor.DarkGreen)
+                                Console.ForegroundColor = ConsoleColor.Green;
+                            else if (Console.ForegroundColor == ConsoleColor.DarkRed)
+                                Console.ForegroundColor = ConsoleColor.Red;
+                            else if (Console.ForegroundColor == ConsoleColor.DarkMagenta)
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                            else if (Console.ForegroundColor == ConsoleColor.DarkYellow)
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                            else if (Console.ForegroundColor == ConsoleColor.DarkBlue)
+                                Console.ForegroundColor = ConsoleColor.Blue;
+                            else if (Console.ForegroundColor == ConsoleColor.DarkCyan)
+                                Console.ForegroundColor = ConsoleColor.Cyan;
+                        }
+
+                        if (asii_tokens.Contains("7") || fbchange == true) //前後背景色彩交換
+                        {
+                            fbchange = true;
                             ConsoleColor backup = Console.ForegroundColor;
                             Console.ForegroundColor = Console.BackgroundColor;
                             Console.BackgroundColor = backup;
@@ -418,27 +480,36 @@ namespace telnet_sample
                     }
                     if (c == 'r') //ColaBBS 發表編輯或讀取文章會用到的控制屬性  set scroll region ?
                     {
-                        MessageBox.Show("unfinish cond [;r");
-                        Console.WriteLine("");
+                        string token = Encoding.Default.GetString(cond_token.ToArray());
+                        token = token.Replace("[", "").Replace("r", "");
+                        List<string> c_TopRight = token.Split(new char[] { ';' }).ToList();
+
+                        if (token == "[;r")
+                            MessageBox.Show("unfinish [;r");
+                        else
+                            MessageBox.Show(token);
+                       
                         cond_code = false;
                         has_SquareBracket = false;
                         cond_token.Clear();
                     }
-                    if (c == 'D' && has_SquareBracket == false) //ColaBBS 發表編輯或讀取文章會用到的控制屬性 index ??
+                    if (c == 'D') //ColaBBS 發表編輯或讀取文章會用到的控制屬性 index ??
                     {
+                        //&& has_SquareBracket == false
                         MessageBox.Show("unfinish cond D");
                         cond_code = false;
                         has_SquareBracket = false;
                         cond_token.Clear();
                     }
-
                     //Inser line (<n> lines)  ; Esc  [ <n> L
-                    //need check 跟 bbs.shu.edu.tw 讀文章畫面上移畫面呈現相容性有關
-                    if (c == 'L')
+                    if (c == 'L') //fix 2013.04.04
                     {
-                        //借用M控制碼操作行為,但是並不是正確做法
-                        if (Console.WindowTop - 1 > 0) Console.WindowTop--;
-                        if (Console.CursorTop - 1 > 0) Console.CursorTop--;
+                        Console.WindowTop--;
+                        Console.CursorTop--;
+                        int org = Console.CursorLeft;
+                        for (int th = Console.CursorLeft; th < Console.WindowWidth - 1; th++)
+                            Console.Write(" ");
+                        Console.CursorLeft = org;
                         cond_code = false;
                         has_SquareBracket = false;
                         cond_token.Clear();

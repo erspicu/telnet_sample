@@ -2,7 +2,7 @@
 #pragma once
 #include "Stdafx.h"
 #include <conio.h>
-#include <windows.h>
+//#include <windows.h>
 
 using namespace System;
 
