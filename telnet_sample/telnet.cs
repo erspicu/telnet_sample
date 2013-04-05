@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using StdioTool; // 有些功能暫時可能需要靠c++ lib & win32api才能處理
 
+
 namespace telnet_sample
 {
     enum Verbs
@@ -28,14 +29,34 @@ namespace telnet_sample
         public stdio std = new stdio(); //討厭的東西,先替帶著用,最終希望直接靠主程式全部解決
         public Stream stdout = Console.OpenStandardOutput();
 
-        public minimal_telnet(string ip, int port)
+        public minimal_telnet(string ip, int port, int size)
         {
             tcpSocket = new TcpClient(ip, port);
 
+            tcpSocket.NoDelay = true;
+
             Console.WindowWidth = 90;
             Console.WindowHeight = 0x18 + 1; // 多一行來放置console末行輸入法
-
             Console.Title = "Sample BBS - " + ip;
+            char[] style = "細明體".ToCharArray();
+            unsafe
+            {
+                fixed (char* style_p = style)
+                {
+                    if (size == 0)
+                        std.set_font_style(16, 16, style_p);
+                    else if (size == 1)
+                        std.set_font_style(20, 20, style_p);
+                    else if (size == 2)
+                        std.set_font_style(24, 24, style_p);
+                    else if (size == 3)
+                        std.set_font_style(28, 28, style_p);
+                    else if (size == 4)
+                        std.set_font_style(32, 32, style_p);
+
+
+                }
+            }
 
             if (!tcpSocket.Connected)
             {
@@ -63,8 +84,9 @@ namespace telnet_sample
         public void readkey()
         {
             bool virtualkey = false;
-            while (true)
+            while ( connect_fails == false )
             {
+
                 if (tcpSocket.Connected == false) return;
 
                 byte keychar;
@@ -138,14 +160,20 @@ namespace telnet_sample
                     tcpSocket.GetStream().Write(new byte[] { 0xe0, (byte)keychar }, 0, 2);
                     continue;
                 }
+
+
                 if (keychar != 0xe0 && virtualkey != true && tcpSocket.Connected == true)
                     tcpSocket.GetStream().WriteByte((byte)keychar);
+
+
+
             }
         }
 
+        bool connect_fails = false;
         public void start()
         {
-            int revice_byte;
+            int revice_byte = 0; ;
             List<byte> revcice_byte_list = new List<byte>();
             do
             {
@@ -157,6 +185,8 @@ namespace telnet_sample
                     }
                     catch
                     {
+                        Console.WriteLine("\n\n按任意鍵離開 Sample BBS Browser.");
+                        connect_fails = true;
                         return;
                     }
                     switch (revice_byte)
@@ -218,7 +248,6 @@ namespace telnet_sample
                             break;
                     }
                     revcice_byte_list.Add((byte)revice_byte);
-                    //Thread.Sleep(1);
                 } while (tcpSocket.Available > 0);
 
                 //-- 列印回傳
@@ -488,7 +517,7 @@ namespace telnet_sample
                             MessageBox.Show("unfinish [;r");
                         else
                             MessageBox.Show(token);
-                       
+
                         cond_code = false;
                         has_SquareBracket = false;
                         cond_token.Clear();
@@ -524,7 +553,7 @@ namespace telnet_sample
                     }
                 }
             }
-            if (cond_code == true) MessageBox.Show("沒找到正確控制碼結束對應字元");
+            //if (cond_code == true) MessageBox.Show("沒找到正確控制碼結束對應字元");
         }
     }
 }

@@ -2,8 +2,8 @@
 #pragma once
 #include "Stdafx.h"
 #include <conio.h>
-//#include <windows.h>
-
+#include <stdio.h>
+#include <windows.h>
 using namespace System;
 
 namespace StdioTool 
@@ -17,11 +17,30 @@ namespace StdioTool
 	public ref class stdio
 	{
 	public:
+
 		//可以支援big5中文分成兩個byte輸入
 		char get_char()
 		{
 			return _getch();
 		}
+
+		// http://go4answers.webhost4life.com/Example/set-font-text-console-application-210221.aspx
+		// 設定螢幕字型大小
+		void set_font_style( int size_x , int size_y , wchar_t  style [] )
+		{
+			//char* p = style;
+			HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); 
+			PCONSOLE_FONT_INFOEX lpConsoleCurrentFontEx = new CONSOLE_FONT_INFOEX() ;
+			lpConsoleCurrentFontEx->dwFontSize.X = size_x ;
+			lpConsoleCurrentFontEx->dwFontSize.Y = size_y ;
+			
+			if( style != NULL)
+				swprintf_s(lpConsoleCurrentFontEx->FaceName, style );
+
+			lpConsoleCurrentFontEx->cbSize = sizeof(CONSOLE_FONT_INFOEX);
+			SetCurrentConsoleFontEx(hConsole,0,lpConsoleCurrentFontEx);
+		}
+
 
 		//
 
@@ -47,8 +66,6 @@ namespace StdioTool
 			getChar(ch);
 			return(ch);
 		}*/
-
-
 		//
 	};
 }
