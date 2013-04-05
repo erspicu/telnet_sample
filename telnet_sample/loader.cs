@@ -10,14 +10,27 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.Threading;
 
+
+
+
+
 namespace telnet_sample
 {
 
 
     public partial class loader : Form
     {
-        [DllImport("kernel32.dll")]
-        public static extern bool AllocConsole();
+        const int SWP_NOSIZE = 0x0001;
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern bool AllocConsole();
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowPos")]
+        public static extern IntPtr SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int Y, int cx, int cy, int wFlags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetConsoleWindow();
+
 
         public List<siteitem> siteslists = new List<siteitem>();
      
@@ -29,11 +42,52 @@ namespace telnet_sample
 
         private void button1_Click(object sender, EventArgs e)
         {
+            Rectangle resolution = Screen.PrimaryScreen.Bounds;
+            int height=resolution.Size.Height;
+            int width=resolution.Size.Width;
+            
+            //MessageBox.Show(  width.ToString() );
+
+            int x=0, y=0;
+
+            if (comboBox1.SelectedIndex == 4)
+            {
+                x = (width - 1317) / 2;
+                y = (height - 1009) / 2;
+            }
+            if (comboBox1.SelectedIndex == 3)
+            {
+                x = (width - 1157) / 2;
+                y = (height - 909) / 2;
+            }
+            if (comboBox1.SelectedIndex == 2)
+            {
+                x = (width - 997) / 2;
+                y = (height - 784) / 2;
+            }
+            if (comboBox1.SelectedIndex == 1)
+            {
+                x = (width - 837) / 2;
+                y = (height - 659) / 2;
+            }
+            if (comboBox1.SelectedIndex == 0)
+            {
+                x = (width - 667) / 2;
+                y = (height - 534) / 2;
+            }
+
+
+
+            this.Visible = false;
+
             AllocConsole();
+            IntPtr MyConsole = GetConsoleWindow();
+            SetWindowPos(MyConsole, 0, x, y, 0, 0, SWP_NOSIZE);
+
             Console.WriteLine("連入 " + textBox1.Text.Replace(" ", "") + " 中..");
             Thread.Sleep(1000);
-            this.Visible = false;
-            win32api.set_console_desktop_xy(0, 0);
+            Console.WindowLeft = 0;
+                        
             minimal_telnet mytenlet = new minimal_telnet(textBox1.Text.Replace(" ", ""), int.Parse(textBox2.Text.Replace(" ", "")), comboBox1.SelectedIndex);
             mytenlet.start();
             Close();
@@ -70,7 +124,7 @@ namespace telnet_sample
                 siteslists.Add(st);
             }
 
-            comboBox1.SelectedIndex = 3;
+            comboBox1.SelectedIndex = 2;
             comboBox2.SelectedIndex = 0;
         }
     }

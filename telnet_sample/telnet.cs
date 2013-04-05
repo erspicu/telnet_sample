@@ -53,8 +53,8 @@ namespace telnet_sample
                         std.set_font_style(28, 28, style_p);
                     else if (size == 4)
                         std.set_font_style(32, 32, style_p);
-
-
+                    //else if (size == 5)
+                      //  std.set_font_style(36, 36, style_p);
                 }
             }
 
